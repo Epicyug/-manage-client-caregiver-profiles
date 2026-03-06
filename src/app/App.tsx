@@ -33,6 +33,7 @@ function App() {
   const [editingOpportunity, setEditingOpportunity] = useState<Opportunity | undefined>();
   const [editingVolunteer, setEditingVolunteer] = useState<Volunteer | undefined>();
   const [editingSponsor, setEditingSponsor] = useState<Sponsor | undefined>();
+  const [volunteerSkillFilter, setVolunteerSkillFilter] = useState('');
 
   // Check if Supabase is configured and load data
   useEffect(() => {
@@ -1035,6 +1036,33 @@ function App() {
               </Button>
             </div>
 
+            {volunteers.length > 0 && (
+              <div className="flex items-center gap-3">
+                <label className="text-sm font-medium text-gray-700">Filter by Skill:</label>
+                <select
+                  value={volunteerSkillFilter}
+                  onChange={(e) => setVolunteerSkillFilter(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">All Skills</option>
+                  {Array.from(new Set(volunteers.flatMap(v => v.skills))).sort().map(skill => (
+                    <option key={skill} value={skill}>{skill}</option>
+                  ))}
+                </select>
+                {volunteerSkillFilter && (
+                  <button
+                    onClick={() => setVolunteerSkillFilter('')}
+                    className="text-sm text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Clear filter
+                  </button>
+                )}
+                <span className="text-sm text-gray-500">
+                  {volunteers.filter(v => !volunteerSkillFilter || v.skills.includes(volunteerSkillFilter)).length} of {volunteers.length} volunteers
+                </span>
+              </div>
+            )}
+
             {volunteers.length === 0 ? (
               <Card className="p-12 text-center">
                 <Heart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -1042,7 +1070,9 @@ function App() {
               </Card>
             ) : (
               <div className="grid gap-4">
-                {volunteers.map((volunteer) => (
+                {volunteers
+                  .filter(v => !volunteerSkillFilter || v.skills.includes(volunteerSkillFilter))
+                  .map((volunteer) => (
                   <Card key={volunteer.id} className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -1052,16 +1082,23 @@ function App() {
                         <div className="mt-2 space-y-1 text-sm text-gray-600">
                           <p>Email: {volunteer.email}</p>
                           <p>Phone: {volunteer.phone}</p>
-                          <p>Availability: {volunteer.availability}</p>
                           <p>Emergency Contact: {volunteer.emergencyContact} ({volunteer.emergencyPhone})</p>
                         </div>
+                        <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded">
+                          <p className="text-sm text-orange-800">
+                            <strong>Availability:</strong> {volunteer.availability}
+                          </p>
+                        </div>
                         {volunteer.skills.length > 0 && (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {volunteer.skills.map((skill) => (
-                              <Badge key={skill} variant="secondary">
-                                {skill}
-                              </Badge>
-                            ))}
+                          <div className="mt-3">
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Skills</p>
+                            <div className="flex flex-wrap gap-2">
+                              {volunteer.skills.map((skill) => (
+                                <Badge key={skill} variant="secondary">
+                                  {skill}
+                                </Badge>
+                              ))}
+                            </div>
                           </div>
                         )}
                         {volunteer.notes && (
@@ -1138,6 +1175,27 @@ function App() {
                             </p>
                           </div>
                         )}
+                        {(() => {
+                          const linkedOpps = opportunities.filter(o => o.sponsorId === sponsor.id);
+                          return linkedOpps.length > 0 ? (
+                            <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded">
+                              <p className="text-sm font-medium text-purple-800 mb-2">
+                                Sponsored Opportunities ({linkedOpps.length}):
+                              </p>
+                              <div className="flex flex-wrap gap-1">
+                                {linkedOpps.map(opp => (
+                                  <Badge key={opp.id} variant="outline" className="text-purple-700 border-purple-300 text-xs">
+                                    {opp.title}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded">
+                              <p className="text-sm text-gray-500">No opportunities linked yet.</p>
+                            </div>
+                          );
+                        })()}
                         <p className="text-xs text-gray-400 mt-3">
                           Last updated: {new Date(sponsor.updatedAt).toLocaleDateString()}
                         </p>
