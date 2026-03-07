@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, UserCheck, Calendar, Plus, Edit2, Trash2, AlertCircle, AlertTriangle, Heart, Building2 } from 'lucide-react';
+import { Users, UserCheck, Calendar, Plus, Edit2, Trash2, AlertCircle, AlertTriangle, Heart, Building2, LogOut } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { Card } from './components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
@@ -9,17 +9,29 @@ import { CaregiverForm, Caregiver } from './components/CaregiverForm';
 import { OpportunityForm, Opportunity } from './components/OpportunityForm';
 import { VolunteerForm, Volunteer } from './components/VolunteerForm';
 import { SponsorForm, Sponsor } from './components/SponsorForm';
+import { LoginPage } from './components/LoginPage';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { toast } from 'sonner';
 import { Toaster } from './components/ui/sonner';
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem('isAdminLoggedIn') === 'true';
+  });
+
+  const handleLogin = () => setIsLoggedIn(true);
+
+  const handleLogout = () => {
+    localStorage.removeItem('isAdminLoggedIn');
+    setIsLoggedIn(false);
+  };
+
   const [clients, setClients] = useState<Client[]>([]);
   const [caregivers, setCaregivers] = useState<Caregiver[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
-  
+
   const [loading, setLoading] = useState(true);
   const [useSupabase, setUseSupabase] = useState(false);
   const [showClientForm, setShowClientForm] = useState(false);
@@ -774,6 +786,10 @@ function App() {
     setEditingSponsor(undefined);
   };
 
+  if (!isLoggedIn) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -795,12 +811,23 @@ function App() {
               <h1 className="text-3xl font-semibold text-gray-900">Admin Dashboard</h1>
               <p className="text-gray-600 mt-1">Manage profiles, volunteers, sponsors, events, and opportunities</p>
             </div>
-            {!useSupabase && (
-              <Badge variant="outline" className="flex items-center gap-2 px-3 py-2">
-                <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                <span className="text-sm">LocalStorage Mode</span>
-              </Badge>
-            )}
+            <div className="flex items-center gap-3">
+              {!useSupabase && (
+                <Badge variant="outline" className="flex items-center gap-2 px-3 py-2">
+                  <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                  <span className="text-sm">LocalStorage Mode</span>
+                </Badge>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="flex items-center gap-2 text-gray-600 hover:text-red-600 hover:border-red-300"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </Button>
+            </div>
           </div>
           {!useSupabase && (
             <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
