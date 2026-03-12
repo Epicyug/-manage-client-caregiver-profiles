@@ -9,6 +9,8 @@ import { CaregiverForm, Caregiver } from './components/CaregiverForm';
 import { OpportunityForm, Opportunity } from './components/OpportunityForm';
 import { VolunteerForm, Volunteer } from './components/VolunteerForm';
 import { SponsorForm, Sponsor } from './components/SponsorForm';
+import { MatchingTab } from './components/MatchingTab';
+import { NewsletterTab } from './components/NewsletterTab';
 import { LoginPage } from './components/LoginPage';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { toast } from 'sonner';
@@ -917,6 +919,8 @@ function App() {
             <TabsTrigger value="volunteers">Volunteers</TabsTrigger>
             <TabsTrigger value="sponsors">Sponsors</TabsTrigger>
             <TabsTrigger value="opportunities">Events & Opportunities</TabsTrigger>
+            <TabsTrigger value="matching">Matching</TabsTrigger>
+            <TabsTrigger value="newsletter">Newsletter</TabsTrigger>
           </TabsList>
 
           <TabsContent value="clients" className="space-y-4">
@@ -1325,6 +1329,22 @@ function App() {
                 })}
               </div>
             )}
+          </TabsContent>
+          <TabsContent value="matching">
+            <MatchingTab
+              clients={clients}
+              opportunities={opportunities}
+              sponsors={sponsors}
+            />
+          </TabsContent>
+
+          <TabsContent value="newsletter">
+            <NewsletterTab
+              clients={clients}
+              caregivers={caregivers}
+              volunteers={volunteers}
+              sponsors={sponsors}
+            />
           </TabsContent>
         </Tabs>
       </main>
