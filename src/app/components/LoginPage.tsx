@@ -24,7 +24,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     setError('');
 
     setTimeout(() => {
-      if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+      if (username.toLowerCase() === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
         localStorage.setItem('isAdminLoggedIn', 'true');
         onLogin();
       } else {
