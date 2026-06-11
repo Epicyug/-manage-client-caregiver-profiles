@@ -1,0 +1,3 @@
+[build]
+  command = "vite build && cp -r gujarati-match-game dist/gujarati-match-game"
+  publish = "dist"
