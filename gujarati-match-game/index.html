@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ગુજરાતી શબ્દ મેળ રમત — Gujarati Word Match Game</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;700;900&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gu: 'Noto Sans Gujarati', 'Shruti', sans-serif;
+      --en: 'Inter', sans-serif;
+      --bg: linear-gradient(135deg, #7c3aed 0%, #6d28d9 55%, #4338ca 100%);
+      --card-idle:    rgba(255,255,255,0.13);
+      --card-border:  rgba(255,255,255,0.18);
+      --card-sel:     rgba(251,191,36,0.28);
+      --card-sel-b:   #fbbf24;
+      --card-match:   rgba(52,211,153,0.25);
+      --card-match-b: #34d399;
+      --card-wrong:   rgba(239,68,68,0.28);
+      --card-wrong-b: #ef4444;
+      --card-hint:    rgba(96,165,250,0.30);
+      --card-hint-b:  #60a5fa;
+    }
+
+    body { font-family: var(--en); background: var(--bg); min-height: 100vh; color: #fff; overflow-x: hidden; }
+
+    /* ───── SCREENS ───── */
+    .screen { display: none; min-height: 100vh; flex-direction: column; align-items: center; justify-content: center; padding: 1rem; position: relative; overflow: hidden; }
+    .screen.active { display: flex; }
+
+    /* ───── DECORATIONS ───── */
+    .deco { position: absolute; font-size: 2.5rem; opacity: .18; pointer-events: none; user-select: none; animation: float 3s ease-in-out infinite alternate; }
+
+    /* ───── GLASS CARD ───── */
+    .glass { background: rgba(255,255,255,.11); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,.2); border-radius: 1.5rem; padding: 2rem; width: 100%; max-width: 22rem; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+
+    /* ───── TYPOGRAPHY ───── */
+    .gu { font-family: var(--gu); }
+    h1.gu-title { font-family: var(--gu); font-size: 2.6rem; font-weight: 900; color: #fff; line-height: 1.1; }
+    .sub { color: rgba(255,255,255,.55); font-size: .85rem; margin-top: .25rem; }
+    .hero-icon { font-size: 4rem; margin-bottom: .75rem; display: block; text-align: center; }
+
+    /* ───── INPUT ───── */
+    input[type=text] {
+      width: 100%; padding: .9rem 1rem; border-radius: 1rem; font-size: 1.1rem;
+      background: rgba(255,255,255,.18); border: 2px solid rgba(255,255,255,.2);
+      color: #fff; outline: none; transition: border .2s, box-shadow .2s; font-family: var(--en);
+    }
+    input::placeholder { color: rgba(255,255,255,.4); }
+    input:focus { border-color: #fbbf24; box-shadow: 0 0 0 3px rgba(251,191,36,.25); }
+
+    /* ───── BUTTONS ───── */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; padding: .85rem 1.4rem; border-radius: 1rem; font-weight: 700; font-size: 1rem; cursor: pointer; border: none; transition: transform .15s, filter .15s, opacity .15s; }
+    .btn:hover:not(:disabled) { transform: scale(1.03); filter: brightness(1.08); }
+    .btn:active:not(:disabled) { transform: scale(.96); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-primary { background: linear-gradient(135deg,#fbbf24,#f59e0b); color: #1e1b4b; width: 100%; font-family: var(--gu); font-size: 1.1rem; }
+    .btn-purple  { background: linear-gradient(135deg,#7c3aed,#6d28d9); color: #fff; flex: 1; }
+    .btn-ghost   { background: rgba(255,255,255,.12); color: #fff; flex: 1; }
+    .btn-white   { background: #f3f4f6; color: #374151; flex: 1; border-radius: 1rem; }
+    .btn-back    { position: absolute; top: 1rem; left: 1rem; background: rgba(255,255,255,.1); color: rgba(255,255,255,.7); border: none; border-radius: .75rem; padding: .4rem .85rem; cursor: pointer; font-size: .85rem; transition: background .2s, color .2s; }
+    .btn-back:hover { background: rgba(255,255,255,.2); color: #fff; }
+
+    /* ───── CATEGORY GRID ───── */
+    .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%; max-width: 22rem; }
+    .cat-card { border: none; border-radius: 1.5rem; padding: 1.25rem; color: #fff; cursor: pointer; text-align: center; transition: transform .2s, box-shadow .2s; box-shadow: 0 6px 24px rgba(0,0,0,.25); }
+    .cat-card:hover { transform: scale(1.06); box-shadow: 0 12px 32px rgba(0,0,0,.35); }
+    .cat-card:active { transform: scale(.96); }
+    .cat-icon { font-size: 3rem; display: block; margin-bottom: .4rem; }
+    .cat-name-gu { font-family: var(--gu); font-size: 1.2rem; font-weight: 700; }
+    .cat-name-en { font-size: .8rem; opacity: .8; }
+    .cat-count   { font-size: .7rem; opacity: .55; margin-top: .2rem; }
+
+    /* ───── DIFFICULTY LIST ───── */
+    .diff-list { display: flex; flex-direction: column; gap: .75rem; width: 100%; max-width: 22rem; }
+    .diff-btn { border: none; border-radius: 1.25rem; padding: 1rem 1.2rem; color: #fff; cursor: pointer; display: flex; align-items: center; gap: 1rem; text-align: left; transition: transform .2s; box-shadow: 0 4px 18px rgba(0,0,0,.2); }
+    .diff-btn:hover { transform: scale(1.02); }
+    .diff-btn:active { transform: scale(.97); }
+    .diff-icon { font-size: 2rem; flex-shrink: 0; }
+    .diff-label-gu { font-family: var(--gu); font-weight: 700; font-size: 1rem; }
+    .diff-label-en { opacity: .7; font-size: .85rem; font-weight: 400; }
+    .diff-desc { font-size: .8rem; opacity: .7; margin-top: .1rem; }
+    .diff-best { margin-left: auto; text-align: right; font-size: .8rem; opacity: .85; flex-shrink: 0; }
+    .diff-best b { font-size: .95rem; display: block; }
+
+    /* ───── GAME HEADER ───── */
+    .game-header { background: rgba(0,0,0,.22); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(255,255,255,.1); padding: .6rem 1rem; display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; position: sticky; top: 0; z-index: 10; }
+    .pill { display: flex; align-items: center; gap: .3rem; background: rgba(255,255,255,.12); border-radius: .75rem; padding: .35rem .75rem; font-size: .85rem; font-weight: 700; white-space: nowrap; }
+    .pill.red { background: rgba(239,68,68,.22); color: #fca5a5; }
+    .pill.hint-btn { background: rgba(251,191,36,.18); color: #fde68a; cursor: pointer; border: none; transition: background .2s; }
+    .pill.hint-btn:hover:not(:disabled) { background: rgba(251,191,36,.35); }
+    .pill.hint-btn:disabled { opacity: .3; cursor: not-allowed; }
+
+    /* ───── PROGRESS BAR ───── */
+    .progress-wrap { height: .35rem; background: rgba(0,0,0,.25); }
+    .progress-bar  { height: 100%; background: linear-gradient(90deg,#fbbf24,#34d399); transition: width .5s ease; }
+
+    /* ───── GAME COLUMNS ───── */
+    .col-label { text-align: center; color: rgba(255,255,255,.5); font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .25rem; }
+    .game-area { flex: 1; overflow-y: auto; padding: .75rem; }
+    .game-cols  { display: flex; gap: .75rem; max-width: 28rem; margin: 0 auto; }
+    .game-col   { flex: 1; display: flex; flex-direction: column; gap: .6rem; }
+
+    /* ───── MATCH CARDS ───── */
+    .match-card {
+      width: 100%; padding: .75rem .6rem; border-radius: 1.1rem; border: 2px solid var(--card-border);
+      background: var(--card-idle); color: #fff; cursor: pointer; text-align: center;
+      transition: background .15s, border-color .15s, transform .15s, box-shadow .15s;
+      font-family: var(--en);
+    }
+    .match-card:not([disabled]):hover { filter: brightness(1.1); transform: scale(1.025); }
+    .match-card[disabled] { cursor: default; }
+    .match-card .word-gu  { font-family: var(--gu); font-size: 1.35rem; font-weight: 700; line-height: 1.2; }
+    .match-card .word-pro { font-size: .7rem; color: rgba(255,255,255,.5); margin-top: .15rem; font-style: italic; }
+    .match-card .emoji    { font-size: 2rem; line-height: 1; }
+    .match-card .en-label { font-size: .7rem; color: rgba(255,255,255,.4); margin-top: .15rem; }
+    .match-card .check    { font-size: 1.3rem; font-weight: 700; color: #34d399; }
+
+    .match-card.selected  { background: var(--card-sel);   border-color: var(--card-sel-b);  transform: scale(1.05); box-shadow: 0 4px 20px rgba(251,191,36,.3); }
+    .match-card.matched   { background: var(--card-match); border-color: var(--card-match-b); transform: scale(.97); }
+    .match-card.wrong     { background: var(--card-wrong); border-color: var(--card-wrong-b); animation: shake .4s ease; }
+    .match-card.hinted    { background: var(--card-hint);  border-color: var(--card-hint-b);  transform: scale(1.07); animation: hintPulse .7s ease infinite alternate; }
+
+    /* ───── RESULTS ───── */
+    .results-card { background: #fff; border-radius: 1.75rem; padding: 1.5rem; width: 100%; max-width: 22rem; box-shadow: 0 24px 64px rgba(0,0,0,.35); position: relative; z-index: 10; color: #111; }
+    .score-box { border-radius: 1.25rem; padding: 1rem; background: linear-gradient(135deg,#f5f3ff,#ede9fe); margin-bottom: 1rem; }
+    .score-main { display: flex; justify-content: space-between; align-items: center; margin-bottom: .5rem; }
+    .score-pts  { font-size: 2rem; font-weight: 900; color: #7c3aed; }
+    .stat-row   { display: flex; justify-content: space-between; font-size: .85rem; padding: .2rem 0; }
+    .stat-row + .stat-row { border-top: 1px solid rgba(124,58,237,.1); }
+    .stat-row .lbl { color: #6b7280; }
+    .stat-row .val { font-weight: 600; color: #111; }
+    .stat-row .val.green { color: #059669; }
+    .stat-row .val.red   { color: #dc2626; }
+
+    .lb-row { display: flex; align-items: center; gap: .6rem; padding: .5rem .7rem; border-radius: .9rem; font-size: .85rem; background: #f9fafb; }
+    .lb-row.mine { background: #fefce8; border: 2px solid #fbbf24; }
+    .lb-row .lb-rank { width: 1.5rem; text-align: center; font-size: 1rem; }
+    .lb-row .lb-name { flex: 1; font-weight: 600; color: #111; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lb-row .you-tag { font-size: .7rem; color: #7c3aed; margin-left: .3rem; }
+    .lb-row .lb-score { font-weight: 700; color: #7c3aed; }
+    .lb-row .lb-time  { color: #9ca3af; font-size: .75rem; }
+
+    .btn-row { display: flex; gap: .6rem; margin-top: 1rem; }
+
+    /* ───── CONFETTI ───── */
+    .confetti-piece { position: absolute; width: 7px; height: 11px; border-radius: 2px; opacity: .75; pointer-events: none; animation: fall var(--dur,2s) ease-in-out var(--delay,0s) infinite alternate; }
+
+    /* ───── KEYFRAMES ───── */
+    @keyframes float { 0%{transform:translateY(0)} 100%{transform:translateY(-16px)} }
+    @keyframes shake {
+      0%,100%{transform:translateX(0)}
+      20%{transform:translateX(-8px)}
+      40%{transform:translateX(8px)}
+      60%{transform:translateX(-5px)}
+      80%{transform:translateX(5px)}
+    }
+    @keyframes hintPulse {
+      0%   {box-shadow:0 0 0 0 rgba(96,165,250,.5)}
+      100% {box-shadow:0 0 14px 5px rgba(96,165,250,.15)}
+    }
+    @keyframes fall {
+      0%   {transform:translateY(-12px) rotate(0deg);   opacity:.8}
+      100% {transform:translateY(20px)  rotate(200deg); opacity:.25}
+    }
+
+    /* ───── SECTION HEADINGS ───── */
+    .screen-title { text-align: center; margin-bottom: 1.5rem; }
+    .screen-title h2 { font-family: var(--gu); font-size: 1.9rem; font-weight: 900; color: #fff; }
+    .screen-title p  { color: rgba(255,255,255,.5); font-size: .85rem; margin-top: .2rem; }
+    .screen-title .greeting { color: rgba(255,255,255,.6); font-size: .9rem; margin-bottom: .3rem; }
+
+    /* ───── FEATURE DOTS ───── */
+    .features { display: flex; justify-content: center; gap: .75rem; margin-top: 1.25rem; color: rgba(255,255,255,.4); font-size: .75rem; }
+    .features span::before { content:"•"; margin-right: .35rem; }
+    .features span:first-child::before { content: ""; }
+
+    @media (max-width: 380px) {
+      .cat-grid { gap: .7rem; }
+      .cat-card { padding: 1rem; }
+      .match-card .word-gu { font-size: 1.15rem; }
+      .match-card .emoji   { font-size: 1.7rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════ WELCOME ════════════════════════════ -->
+<div class="screen active" id="screen-welcome">
+  <div class="deco" style="left:8%;top:12%;animation-delay:.2s">🎯</div>
+  <div class="deco" style="left:85%;top:18%;animation-delay:.8s">⭐</div>
+  <div class="deco" style="left:12%;top:78%;animation-delay:1.2s">🏆</div>
+  <div class="deco" style="left:80%;top:72%;animation-delay:.4s">✨</div>
+  <div class="deco" style="left:5%;top:45%;animation-delay:1.6s">🎮</div>
+  <div class="deco" style="left:90%;top:50%;animation-delay:.6s">💫</div>
+
+  <div class="glass">
+    <span class="hero-icon">🎮</span>
+    <div style="text-align:center;margin-bottom:1.75rem">
+      <h1 class="gu-title" style="text-align:center">ગુજરાતી</h1>
+      <div class="gu" style="color:#fde68a;font-size:1.25rem;font-weight:700;margin-top:.2rem">શબ્દ મેળ રમત</div>
+      <div class="sub">Gujarati Word Matching Game</div>
+    </div>
+
+    <label style="color:rgba(255,255,255,.75);font-size:.875rem;display:block;margin-bottom:.5rem">
+      <span class="gu">તમારું નામ</span> / Your Name
+    </label>
+    <input id="name-input" type="text" placeholder="Enter your name..." maxlength="20" autocomplete="off" />
+    <div style="height:.75rem"></div>
+    <button class="btn btn-primary" id="start-btn" disabled onclick="goCategory()">
+      <span class="gu">રમત શરૂ કરો</span> 🚀
+    </button>
+
+    <div class="features">
+      <span>4 Categories</span>
+      <span>3 Levels</span>
+      <span>Leaderboard</span>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ CATEGORY ════════════════════════════ -->
+<div class="screen" id="screen-category">
+  <button class="btn-back" onclick="show('welcome')">← Back</button>
+  <div class="screen-title">
+    <div class="greeting gu" id="cat-greeting"></div>
+    <h2>વર્ગ પસંદ કરો</h2>
+    <p>Choose a Category</p>
+  </div>
+  <div class="cat-grid" id="cat-grid"></div>
+</div>
+
+<!-- ════════════════════════════ DIFFICULTY ════════════════════════════ -->
+<div class="screen" id="screen-difficulty">
+  <button class="btn-back" onclick="show('category')">← Back</button>
+  <div class="screen-title">
+    <div id="diff-cat-icon" style="font-size:3rem;margin-bottom:.3rem"></div>
+    <h2 id="diff-cat-name"></h2>
+    <p><span class="gu">કઠિનાઈ</span> / Difficulty</p>
+  </div>
+  <div class="diff-list" id="diff-list"></div>
+</div>
+
+<!-- ════════════════════════════ PLAYING ════════════════════════════ -->
+<div class="screen" id="screen-playing" style="padding:0;justify-content:flex-start">
+  <div class="game-header">
+    <button class="pill" style="cursor:pointer;background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.6);font-size:.85rem" onclick="quitGame()">✕</button>
+    <div style="display:flex;gap:.5rem;flex:1;justify-content:center;flex-wrap:wrap">
+      <div class="pill">⏱ <span id="timer-display">0m 00s</span></div>
+      <div class="pill">✅ <span id="match-display">0/0</span></div>
+      <div class="pill">👆 <span id="moves-display">0</span></div>
+      <div class="pill red" id="wrong-pill" style="display:none">❌ <span id="wrong-display">0</span></div>
+    </div>
+    <button class="pill hint-btn" id="hint-btn" onclick="doHint()">💡 <span id="hint-count">3</span></button>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+  <div style="text-align:center;padding:.4rem 0"><span id="game-label" style="color:rgba(255,255,255,.45);font-size:.75rem"></span></div>
+  <div class="game-area">
+    <div class="game-cols">
+      <div class="game-col">
+        <div class="col-label gu">ગુજરાતી</div>
+        <div id="words-col"></div>
+      </div>
+      <div class="game-col">
+        <div class="col-label gu">ચિત્ર</div>
+        <div id="emojis-col"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ RESULTS ════════════════════════════ -->
+<div class="screen" id="screen-results">
+  <div id="confetti-container"></div>
+  <div class="results-card">
+    <div style="text-align:center;margin-bottom:1rem">
+      <div id="result-trophy" style="font-size:3.5rem;margin-bottom:.4rem">🏆</div>
+      <h2 id="result-title" class="gu" style="font-size:1.6rem;font-weight:900;color:#7c3aed"></h2>
+      <p id="result-sub" style="color:#6b7280;font-size:.875rem;margin-top:.25rem"></p>
+    </div>
+    <div class="score-box">
+      <div class="score-main">
+        <span style="color:#6b7280;font-size:.875rem">Score</span>
+        <span class="score-pts" id="result-score">0 <span style="font-size:1rem;font-weight:400">pts</span></span>
+      </div>
+      <div class="stat-row"><span class="lbl">Time</span><span class="val" id="r-time">—</span></div>
+      <div class="stat-row"><span class="lbl">Pairs</span><span class="val green" id="r-pairs">—</span></div>
+      <div class="stat-row"><span class="lbl">Moves</span><span class="val" id="r-moves">—</span></div>
+      <div class="stat-row"><span class="lbl">Wrong Guesses</span><span class="val" id="r-wrongs">—</span></div>
+    </div>
+    <div style="margin-bottom:1rem">
+      <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.6rem">
+        <span>🏆</span>
+        <span style="font-weight:700;color:#111;font-size:.9rem">Leaderboard</span>
+        <span id="lb-meta" style="font-size:.75rem;color:#9ca3af;margin-left:auto"></span>
+      </div>
+      <div id="lb-rows" style="display:flex;flex-direction:column;gap:.4rem"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-purple" onclick="playAgain()"><span class="gu">ફરી રમો</span> 🔄</button>
+      <button class="btn btn-white" onclick="show('category')">Change 📚</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════════
+const CATS = {
+  animals: {
+    name: 'પ્રાણીઓ', nameEn: 'Animals', icon: '🦁',
+    gradient: 'linear-gradient(135deg,#f97316,#f59e0b)',
+    pairs: [
+      {id:'cow',      gu:'ગાય',      pro:'gāy',      em:'🐄', en:'Cow'},
+      {id:'elephant', gu:'હાથી',     pro:'hāthī',    em:'🐘', en:'Elephant'},
+      {id:'goat',     gu:'બકરી',     pro:'bakarī',   em:'🐐', en:'Goat'},
+      {id:'snake',    gu:'સાપ',      pro:'sāp',      em:'🐍', en:'Snake'},
+      {id:'horse',    gu:'ઘોડો',     pro:'ghoḍo',    em:'🐴', en:'Horse'},
+      {id:'lion',     gu:'સિંહ',     pro:'sinh',     em:'🦁', en:'Lion'},
+      {id:'tiger',    gu:'વાઘ',      pro:'vāgh',     em:'🐯', en:'Tiger'},
+      {id:'monkey',   gu:'વાંદરો',   pro:'vāndaro',  em:'🐒', en:'Monkey'},
+      {id:'rabbit',   gu:'સસલો',    pro:'sasalo',   em:'🐰', en:'Rabbit'},
+      {id:'dog',      gu:'કૂતરો',    pro:'kūtaro',   em:'🐕', en:'Dog'},
+    ]
+  },
+  fruits: {
+    name: 'ફળો', nameEn: 'Fruits', icon: '🍎',
+    gradient: 'linear-gradient(135deg,#ef4444,#f43f5e)',
+    pairs: [
+      {id:'apple',      gu:'સફરજન',     pro:'safarajan', em:'🍎', en:'Apple'},
+      {id:'banana',     gu:'કેળું',      pro:'keḷum',     em:'🍌', en:'Banana'},
+      {id:'mango',      gu:'કેરી',       pro:'kerī',      em:'🥭', en:'Mango'},
+      {id:'grapes',     gu:'દ્રાક્ષ',   pro:'drākṣa',   em:'🍇', en:'Grapes'},
+      {id:'orange_f',   gu:'નારંગી',    pro:'nārangi',   em:'🍊', en:'Orange'},
+      {id:'watermelon', gu:'તરબૂચ',     pro:'tarabūch',  em:'🍉', en:'Watermelon'},
+      {id:'cherry',     gu:'ચેરી',       pro:'cherī',     em:'🍒', en:'Cherry'},
+      {id:'strawberry', gu:'સ્ટ્રોબેરી', pro:'sṭroberi', em:'🍓', en:'Strawberry'},
+      {id:'coconut',    gu:'નાળિયેર',   pro:'nāḷiyer',  em:'🥥', en:'Coconut'},
+      {id:'lemon',      gu:'લીંબુ',      pro:'limbū',     em:'🍋', en:'Lemon'},
+    ]
+  },
+  colors: {
+    name: 'રંગો', nameEn: 'Colors', icon: '🎨',
+    gradient: 'linear-gradient(135deg,#8b5cf6,#6d28d9)',
+    pairs: [
+      {id:'red',    gu:'લાલ',    pro:'lāl',     em:'🔴', en:'Red'},
+      {id:'blue',   gu:'વાદળી',  pro:'vādaḷī', em:'🔵', en:'Blue'},
+      {id:'green',  gu:'લીલો',   pro:'līlo',    em:'🟢', en:'Green'},
+      {id:'yellow', gu:'પીળો',   pro:'pīḷo',    em:'🟡', en:'Yellow'},
+      {id:'orange_c',gu:'નારંગો', pro:'nāranго', em:'🟠', en:'Orange'},
+      {id:'purple', gu:'જાંબુડી', pro:'jāmbuḍī', em:'🟣', en:'Purple'},
+      {id:'pink',   gu:'ગુલાબી', pro:'gulābī',  em:'🩷', en:'Pink'},
+      {id:'brown',  gu:'ભૂરો',   pro:'bhūro',   em:'🟫', en:'Brown'},
+      {id:'white',  gu:'સફેદ',   pro:'sapheda', em:'⬜', en:'White'},
+      {id:'black',  gu:'કાળો',   pro:'kāḷo',   em:'⬛', en:'Black'},
+    ]
+  },
+  numbers: {
+    name: 'સંખ્યા', nameEn: 'Numbers', icon: '🔢',
+    gradient: 'linear-gradient(135deg,#0891b2,#0284c7)',
+    pairs: [
+      {id:'one',   gu:'એક',  pro:'ek',   em:'1️⃣', en:'One'},
+      {id:'two',   gu:'બે',   pro:'be',   em:'2️⃣', en:'Two'},
+      {id:'three', gu:'ત્રણ', pro:'traṇ', em:'3️⃣', en:'Three'},
+      {id:'four',  gu:'ચાર',  pro:'cār',  em:'4️⃣', en:'Four'},
+      {id:'five',  gu:'પાંચ', pro:'pānc', em:'5️⃣', en:'Five'},
+      {id:'six',   gu:'છ',    pro:'cha',  em:'6️⃣', en:'Six'},
+      {id:'seven', gu:'સાત',  pro:'sāt',  em:'7️⃣', en:'Seven'},
+      {id:'eight', gu:'આઠ',  pro:'āṭh',  em:'8️⃣', en:'Eight'},
+      {id:'nine',  gu:'નવ',   pro:'nav',  em:'9️⃣', en:'Nine'},
+      {id:'ten',   gu:'દસ',   pro:'das',  em:'🔟', en:'Ten'},
+    ]
+  }
+};
+
+const DIFFS = {
+  easy:   {pairs:6,  labelGu:'સહેલું',  labelEn:'Easy',   showPro:true,  grad:'linear-gradient(135deg,#10b981,#059669)', icon:'😊'},
+  medium: {pairs:8,  labelGu:'મધ્યમ',  labelEn:'Medium', showPro:true,  grad:'linear-gradient(135deg,#f59e0b,#d97706)', icon:'🤔'},
+  hard:   {pairs:10, labelGu:'મુશ્કેલ', labelEn:'Hard',   showPro:false, grad:'linear-gradient(135deg,#ef4444,#dc2626)', icon:'😤'},
+};
+
+const MEDALS = ['🥇','🥈','🥉'];
+const CONFETTI_COLS = ['#fbbf24','#34d399','#60a5fa','#f472b6','#a78bfa','#fb923c'];
+
+// ══════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════
+let playerName = '', curCat = 'animals', curDiff = 'easy';
+let words=[], emojis=[], matched=new Set(), selWord=null, selEmoji=null;
+let wrongId=null, locked=false, moves=0, wrongs=0, time=0, running=false;
+let hints=3, hintId=null, timerInterval=null, myRank=0;
+
+// ══════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════
+function shuffle(a){ a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a; }
+function fmt(s){ return `${Math.floor(s/60)}m ${String(s%60).padStart(2,'0')}s`; }
+function calcScore(n,t,w){ return n*100 + Math.max(0,300-t)*2 + Math.max(0,30-w)*5 + (w===0?200:0); }
+
+function getLb(cat,diff){ try{return JSON.parse(localStorage.getItem(`gm2_${cat}_${diff}`)||'[]');}catch{return[];} }
+function saveLb(entry,cat,diff){
+  const lb=[...getLb(cat,diff),entry].sort((a,b)=>b.score!==a.score?b.score-a.score:a.time-b.time).slice(0,10);
+  localStorage.setItem(`gm2_${cat}_${diff}`,JSON.stringify(lb));
+  return lb;
+}
+
+function playBeep(type){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const p=(f,s,d,w='sine')=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type=w; o.connect(g); g.connect(ctx.destination);
+      o.frequency.value=f;
+      g.gain.setValueAtTime(0.18,ctx.currentTime+s);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+s+d);
+      o.start(ctx.currentTime+s); o.stop(ctx.currentTime+s+d);
+    };
+    if(type==='match'){p(523,0,.18);p(659,.14,.25);}
+    else if(type==='wrong'){p(160,0,.25,'sawtooth');}
+    else{[523,659,784,1047].forEach((f,i)=>p(f,i*.14,.4));}
+  }catch{}
+}
+
+// ══════════════════════════════════════════
+//  SCREENS
+// ══════════════════════════════════════════
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+}
+
+// ─── Welcome ───
+document.getElementById('name-input').addEventListener('input', e=>{
+  playerName = e.target.value.trim();
+  document.getElementById('start-btn').disabled = !playerName;
+});
+document.getElementById('name-input').addEventListener('keydown', e=>{
+  if(e.key==='Enter' && playerName) goCategory();
+});
+
+function goCategory(){
+  if(!playerName) return;
+  document.getElementById('cat-greeting').textContent = `નમસ્તે, ${playerName}! 👋`;
+  buildCatGrid();
+  show('category');
+}
+
+// ─── Category ───
+function buildCatGrid(){
+  const grid = document.getElementById('cat-grid');
+  grid.innerHTML='';
+  Object.entries(CATS).forEach(([key,cat])=>{
+    const btn=document.createElement('button');
+    btn.className='cat-card';
+    btn.style.background=cat.gradient;
+    btn.innerHTML=`<span class="cat-icon">${cat.icon}</span>
+      <div class="cat-name-gu">${cat.name}</div>
+      <div class="cat-name-en">${cat.nameEn}</div>
+      <div class="cat-count">${cat.pairs.length} words</div>`;
+    btn.onclick=()=>{ curCat=key; buildDiffList(); show('difficulty'); };
+    grid.appendChild(btn);
+  });
+}
+
+// ─── Difficulty ───
+function buildDiffList(){
+  const cat=CATS[curCat];
+  document.getElementById('diff-cat-icon').textContent=cat.icon;
+  document.getElementById('diff-cat-name').textContent=cat.name;
+  const list=document.getElementById('diff-list');
+  list.innerHTML='';
+  Object.entries(DIFFS).forEach(([key,cfg])=>{
+    const best=getLb(curCat,key)[0];
+    const btn=document.createElement('button');
+    btn.className='diff-btn';
+    btn.style.background=cfg.grad;
+    btn.innerHTML=`<span class="diff-icon">${cfg.icon}</span>
+      <div style="flex:1">
+        <div><span class="diff-label-gu">${cfg.labelGu}</span> <span class="diff-label-en">/ ${cfg.labelEn}</span></div>
+        <div class="diff-desc">${cfg.pairs} pairs · ${cfg.showPro?'pronunciation shown':'no pronunciation'}</div>
+      </div>
+      ${best?`<div class="diff-best">Best<b>${best.score}</b></div>`:''}`;
+    btn.onclick=()=>{ curDiff=key; startGame(); };
+    list.appendChild(btn);
+  });
+}
+
+// ══════════════════════════════════════════
+//  GAME
+// ══════════════════════════════════════════
+function startGame(){
+  const cfg=DIFFS[curDiff];
+  const pairs=shuffle(CATS[curCat].pairs).slice(0,cfg.pairs);
+  words=shuffle([...pairs]);
+  emojis=shuffle([...pairs]);
+  matched=new Set(); selWord=null; selEmoji=null;
+  wrongId=null; locked=false; moves=0; wrongs=0; time=0; hints=3; hintId=null;
+
+  // update header
+  document.getElementById('timer-display').textContent=fmt(0);
+  document.getElementById('match-display').textContent=`0/${pairs.length}`;
+  document.getElementById('moves-display').textContent='0';
+  document.getElementById('wrong-display').textContent='0';
+  document.getElementById('wrong-pill').style.display='none';
+  document.getElementById('hint-count').textContent='3';
+  document.getElementById('hint-btn').disabled=false;
+  document.getElementById('progress-bar').style.width='0%';
+  document.getElementById('game-label').textContent=`${CATS[curCat].icon} ${CATS[curCat].name} · ${cfg.labelEn}`;
+
+  renderCols();
+
+  if(timerInterval) clearInterval(timerInterval);
+  running=true;
+  timerInterval=setInterval(()=>{
+    if(!running) return;
+    time++;
+    document.getElementById('timer-display').textContent=fmt(time);
+  },1000);
+
+  show('playing');
+}
+
+function renderCols(){
+  const wCol=document.getElementById('words-col');
+  const eCol=document.getElementById('emojis-col');
+  wCol.innerHTML=''; eCol.innerHTML='';
+  const cfg=DIFFS[curDiff];
+
+  words.forEach(card=>{
+    const el=makeCard('w',card,cfg.showPro);
+    wCol.appendChild(el);
+  });
+  emojis.forEach(card=>{
+    const el=makeCard('e',card,cfg.showPro);
+    eCol.appendChild(el);
+  });
+}
+
+function makeCard(side, card, showPro){
+  const btn=document.createElement('button');
+  btn.className='match-card';
+  btn.dataset.id=card.id;
+  btn.dataset.side=side;
+  if(side==='w'){
+    btn.innerHTML=`<div class="word-gu">${card.gu}</div>${showPro?`<div class="word-pro">${card.pro}</div>`:''}`;
+  } else {
+    btn.innerHTML=`<div class="emoji">${card.em}</div>${showPro?`<div class="en-label">${card.en}</div>`:''}`;
+  }
+  btn.onclick=()=> side==='w'?handleWord(card.id):handleEmoji(card.id);
+  return btn;
+}
+
+function getCard(side,id){
+  return document.querySelector(`.match-card[data-side="${side}"][data-id="${id}"]`);
+}
+
+function handleWord(id){
+  if(locked||matched.has(id)) return;
+  if(selWord===id){ selWord=null; getCard('w',id)?.classList.remove('selected'); return; }
+  if(selWord){ getCard('w',selWord)?.classList.remove('selected'); }
+  selWord=id;
+  getCard('w',id)?.classList.add('selected');
+  if(selEmoji) doCheck(id,selEmoji);
+}
+
+function handleEmoji(id){
+  if(locked||matched.has(id)) return;
+  if(selEmoji===id){ selEmoji=null; getCard('e',id)?.classList.remove('selected'); return; }
+  if(selEmoji){ getCard('e',selEmoji)?.classList.remove('selected'); }
+  selEmoji=id;
+  getCard('e',id)?.classList.add('selected');
+  if(selWord) doCheck(selWord,id);
+}
+
+function doCheck(wId,eId){
+  locked=true; moves++;
+  document.getElementById('moves-display').textContent=moves;
+  if(wId===eId){
+    playBeep('match');
+    matched.add(wId);
+    ['w','e'].forEach(s=>{
+      const el=getCard(s,wId);
+      if(el){ el.classList.remove('selected'); el.classList.add('matched'); el.disabled=true;
+        el.innerHTML='<span class="check">✓</span>'; }
+    });
+    selWord=null; selEmoji=null; locked=false;
+    updateProgress();
+    if(matched.size===words.length) setTimeout(finishGame,500);
+  } else {
+    playBeep('wrong');
+    wrongs++;
+    document.getElementById('wrong-display').textContent=wrongs;
+    document.getElementById('wrong-pill').style.display='flex';
+    wrongId=wId;
+    const wEl=getCard('w',wId);
+    if(wEl){ wEl.classList.remove('selected'); wEl.classList.add('wrong'); }
+    setTimeout(()=>{
+      const el=getCard('w',wId); if(el) el.classList.remove('wrong');
+      if(selWord===wId){ getCard('w',selWord)?.classList.remove('selected'); }
+      if(selEmoji===eId){ getCard('e',selEmoji)?.classList.remove('selected'); }
+      selWord=null; selEmoji=null; wrongId=null; locked=false;
+    },700);
+  }
+}
+
+function updateProgress(){
+  const pct=(matched.size/words.length)*100;
+  document.getElementById('progress-bar').style.width=pct+'%';
+  document.getElementById('match-display').textContent=`${matched.size}/${words.length}`;
+}
+
+function doHint(){
+  if(hints<=0) return;
+  const unmatched=words.filter(w=>!matched.has(w.id));
+  if(!unmatched.length) return;
+  const target=selWord?(unmatched.find(w=>w.id===selWord)||unmatched[0]):unmatched[0];
+  if(hintId){ getCard('e',hintId)?.classList.remove('hinted'); }
+  hintId=target.id;
+  hints--;
+  document.getElementById('hint-count').textContent=hints;
+  if(hints===0) document.getElementById('hint-btn').disabled=true;
+  getCard('e',target.id)?.classList.add('hinted');
+  setTimeout(()=>{ getCard('e',target.id)?.classList.remove('hinted'); hintId=null; },2500);
+}
+
+function quitGame(){
+  running=false;
+  clearInterval(timerInterval);
+  show('category');
+}
+
+// ══════════════════════════════════════════
+//  RESULTS
+// ══════════════════════════════════════════
+function finishGame(){
+  running=false;
+  clearInterval(timerInterval);
+  playBeep('win');
+
+  const score=calcScore(words.length,time,wrongs);
+  const entry={name:playerName,score,time,moves,wrongMoves:wrongs,date:new Date().toLocaleDateString('en-IN')};
+  const lb=saveLb(entry,curCat,curDiff);
+  myRank=lb.findIndex(e=>e.name===playerName&&e.score===score&&e.time===time)+1;
+  if(myRank<1) myRank=lb.length;
+
+  // Trophy / title
+  const trophies=['🏆','🥈','🥉'];
+  document.getElementById('result-trophy').textContent = myRank<=3?trophies[myRank-1]:'🎉';
+  document.getElementById('result-title').textContent  = myRank===1?'અભિનંદન!':'સારી રમત!';
+  document.getElementById('result-sub').textContent    = myRank===1?"🌟 You're #1 on the leaderboard!":`Great job! You ranked #${myRank}`;
+
+  // Stats
+  document.getElementById('result-score').innerHTML=`${score} <span style="font-size:1rem;font-weight:400">pts</span>`;
+  document.getElementById('r-time').textContent  = fmt(time);
+  document.getElementById('r-pairs').textContent = `${matched.size}/${words.length} ✓`;
+  document.getElementById('r-moves').textContent = moves;
+  const wEl=document.getElementById('r-wrongs');
+  wEl.textContent = wrongs===0?'0 — Perfect! 🎯':wrongs;
+  wEl.className='val '+(wrongs===0?'green':'red');
+
+  // Leaderboard
+  document.getElementById('lb-meta').textContent=`${CATS[curCat].nameEn} · ${DIFFS[curDiff].labelEn}`;
+  const lbRows=document.getElementById('lb-rows');
+  lbRows.innerHTML='';
+  lb.slice(0,5).forEach((e,i)=>{
+    const row=document.createElement('div');
+    row.className='lb-row'+(i===myRank-1?' mine':'');
+    row.innerHTML=`<span class="lb-rank">${MEDALS[i]||i+1}</span>
+      <span class="lb-name">${e.name}${i===myRank-1?'<span class="you-tag">← You</span>':''}</span>
+      <span class="lb-score">${e.score}</span>
+      <span class="lb-time">${fmt(e.time)}</span>`;
+    lbRows.appendChild(row);
+  });
+
+  // Confetti
+  const cc=document.getElementById('confetti-container');
+  cc.innerHTML='';
+  for(let i=0;i<28;i++){
+    const d=document.createElement('div');
+    d.className='confetti-piece';
+    d.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;
+      background:${CONFETTI_COLS[i%CONFETTI_COLS.length]};
+      --dur:${1.5+Math.random()*2}s;--delay:${Math.random()*1.5}s;
+      transform:rotate(${Math.random()*360}deg)`;
+    cc.appendChild(d);
+  }
+
+  show('results');
+}
+
+function playAgain(){ startGame(); }
+</script>
+</body>
+</html>

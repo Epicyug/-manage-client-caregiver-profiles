@@ -20,7 +20,6 @@ import { ReportsTab } from './components/ReportsTab';
 import { SubmissionsTab } from './components/SubmissionsTab';
 import { PublicPage } from './components/PublicPage';
 import { LoginPage } from './components/LoginPage';
-import { GujaratiMatchGame } from './components/GujaratiMatchGame';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { toast } from 'sonner';
 import { Toaster } from './components/ui/sonner';
@@ -37,10 +36,6 @@ function App() {
   // View toggle: admin dashboard vs public page
   const [showPublicPage, setShowPublicPage] = useState(() =>
     new URLSearchParams(window.location.search).has('public')
-  );
-  // Gujarati match game — accessible without login via ?game
-  const [showGame, setShowGame] = useState(() =>
-    new URLSearchParams(window.location.search).has('game')
   );
   // Sensitive data masking (req 1501)
   const [maskSensitiveData, setMaskSensitiveData] = useState(false);
@@ -488,11 +483,6 @@ function App() {
   const activeOpportunities = opportunities.filter(o => !o.isArchived);
   const archivedOpportunities = opportunities.filter(o => o.isArchived);
 
-  // Gujarati match game (accessible at ?game, no login required)
-  if (showGame) {
-    return <GujaratiMatchGame onBack={() => setShowGame(false)} />;
-  }
-
   // Public page (accessible at ?public)
   if (showPublicPage) {
     return (
@@ -518,10 +508,7 @@ function App() {
   if (!isLoggedIn) {
     return (
       <div>
-        <div className="fixed top-4 right-4 z-50 flex gap-2">
-          <Button size="sm" variant="outline" className="bg-white shadow-md" onClick={() => setShowGame(true)}>
-            🎮 Play Game
-          </Button>
+        <div className="fixed top-4 right-4 z-50">
           <Button size="sm" variant="outline" className="bg-white shadow-md" onClick={() => setShowPublicPage(true)}>
             <Globe className="w-4 h-4 mr-1" /> View Public Page
           </Button>
@@ -567,15 +554,6 @@ function App() {
               >
                 {maskSensitiveData ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 {maskSensitiveData ? 'Unmask Data' : 'Mask Sensitive'}
-              </Button>
-              {/* Gujarati game */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowGame(true)}
-                className="flex items-center gap-2 text-gray-600"
-              >
-                🎮 Play Game
               </Button>
               {/* Public page button (req 1101) */}
               <Button
